@@ -4,5 +4,4 @@ tmp
 .vscode
 postgres_data
 Dockerfile
-Dockerfile.dev
 docker-compose.yml

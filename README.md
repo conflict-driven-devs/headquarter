@@ -1,10 +1,34 @@
-<p align="center">
-  </a>  <a href="https://jiramo.netlify.app/">
-    <img src="./public/logo.svg" width="100px" alt="Jiramo logo" />
-  </a>
-</p>
+# Headquarter
 
-<h2 align="center" >Jiramo · The #1 CRM built for developers</h2>
+Minimal control plane for provisioning and managing servers.
 
-<p align="center"><a href="https://jiramo.netlify.app/">🌐 Website</a> · <a href="./DOCS.md">📚 Documentation</a></p>
-<br />
+## Layout
+
+-- `apps` - application code, API, frontend embed, agent, models.
+-- `infra` - Docker, compose, bootstrap script, dev tooling.
+
+## Start
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8080`.
+
+## Bootstrap a server
+
+1. Create an instance.
+2. Generate a bootstrap token for that instance.
+3. Run the generated command on the server.
+
+Example:
+
+```bash
+wget -qO- "https://hq.example.com/scripts/setup.sh" | BOOTSTRAP_TOKEN=... bash
+```
+
+## Notes
+
+- Bootstrap tokens are one-time and hashed in DB.
+- `AGENT_TOKEN` is encrypted in DB when `HQ_SECRET_KEY` is set.
+-- The app builds from `apps/cmd/jiramo` and serves the embedded frontend in production.
