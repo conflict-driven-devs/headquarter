@@ -4,8 +4,8 @@ Minimal control plane for provisioning and managing servers.
 
 ## Layout
 
--- `apps` - application code, API, frontend embed, agent, models.
--- `infra` - Docker, compose, bootstrap script, dev tooling.
+- `apps` - application code, API, frontend embed, agent, models.
+- `infra` - Docker, compose, bootstrap script, dev tooling.
 
 ## Start
 
@@ -13,7 +13,7 @@ Minimal control plane for provisioning and managing servers.
 docker compose up --build
 ```
 
-Open `http://localhost:8080`.
+Open `http://localhost` or `https://localhost` if certs are configured.
 
 ## Bootstrap a server
 
@@ -31,4 +31,4 @@ wget -qO- "https://hq.example.com/scripts/setup.sh" | BOOTSTRAP_TOKEN=... bash
 
 - Bootstrap tokens are one-time and hashed in DB.
 - `AGENT_TOKEN` is encrypted in DB when `HQ_SECRET_KEY` is set.
--- The app builds from `apps/cmd/jiramo` and serves the embedded frontend in production.
+- The app builds from `apps/cmd/jiramo` and serves the embedded frontend in production.
