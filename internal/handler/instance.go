@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"jiramo/internal/models"
 	"jiramo/internal/utils"
 	"net/http"
@@ -210,6 +214,70 @@ func (h *InstanceHandler) DeleteInstance(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Deleted"})
+}
+
+func (h *InstanceHandler) DispatchInstance(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(mux.Vars(r)["id"])
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid id")
+		return
+	}
+
+	var instance models.Instance
+	if err := h.DB.First(&instance, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.WriteError(w, http.StatusNotFound, "Instance not found")
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve instance")
+		return
+	}
+
+	agentURL := instance.Server
+	if agentURL == "" {
+		utils.WriteError(w, http.StatusBadRequest, "instance server (agent URL) is not set")
+		return
+	}
+
+	token := instance.Environment["AGENT_TOKEN"]
+	if token == "" {
+		utils.WriteError(w, http.StatusBadRequest, "agent token not configured for instance")
+		return
+	}
+
+	payload := map[string]any{
+		"base_repo_url": instance.BaseRepoURL,
+		"base_repo_ref": instance.BaseRepoRef,
+		"compose_path":  instance.ComposePath,
+		"environment":   instance.Environment,
+	}
+	body, _ := json.Marshal(payload)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", agentURL+"/apply", bytes.NewReader(body))
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "failed to build request to agent")
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 5 * time.Minute}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadGateway, "failed to contact agent: "+err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	data, _ := io.ReadAll(resp.Body)
+
+	// forward agent response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(data)
 }
 
 func (h *InstanceHandler) ApplyInstance(w http.ResponseWriter, r *http.Request) {

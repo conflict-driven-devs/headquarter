@@ -79,6 +79,7 @@ func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, instance
 	instanceRouter.HandleFunc("/{id}", instanceHandler.GetInstance).Methods("GET")
 	instanceRouter.HandleFunc("/{id}", instanceHandler.UpdateInstance).Methods("PUT", "PATCH")
 	instanceRouter.HandleFunc("/{id}/apply", instanceHandler.ApplyInstance).Methods("POST")
+	instanceRouter.HandleFunc("/{id}/dispatch", instanceHandler.DispatchInstance).Methods("POST")
 	instanceRouter.HandleFunc("/{id}", instanceHandler.DeleteInstance).Methods("DELETE")
 
 	// api keys - private
