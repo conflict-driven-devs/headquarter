@@ -33,10 +33,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./infra/proxy:/etc/nginx/conf.d
-      - ./infra/proxy/certbot-www:/var/www/certbot
-      - ./infra/proxy/letsencrypt:/etc/letsencrypt
+      - ./infra/proxy:/etc/nginx/conf.d:ro
+      - ./infra/proxy/certbot-www:/var/www/certbot:ro
+      - ./infra/proxy/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
     networks:
@@ -47,7 +48,6 @@ services:
     restart: "no"
     volumes:
       - ./infra/proxy/letsencrypt:/etc/letsencrypt
-      - ./infra/proxy/letsencrypt:/var/lib/letsencrypt
       - ./infra/proxy:/etc/nginx/conf.d
       - ./infra/proxy/certbot-www:/var/www/certbot
     environment:
@@ -58,11 +58,11 @@ services:
 FIRST=$(echo \"$${CERTBOT_DOMAINS}\" | cut -d',' -f1); \ 
 if [ -n \"$${CERTBOT_DOMAINS}\" -a -n \"$${CERTBOT_EMAIL}\" ]; then \ 
   if [ ! -d /etc/letsencrypt/live/$${FIRST} ]; then \ 
-    certbot certonly --webroot -w /var/www/certbot -d \"$${CERTBOT_DOMAINS}\" --email \"$${CERTBOT_EMAIL}\" --agree-tos --no-eff-email --non-interactive; \ 
+    certbot certonly --webroot -w /var/www/certbot -d \"$${CERTBOT_DOMAINS}\" --email \"$${CERTBOT_EMAIL}\" --agree-tos --no-eff-email --non-interactive && \ 
     cat > /etc/nginx/conf.d/ssl.conf <<'EOF'\nserver {\n  listen 443 ssl;\n  server_name $${CERTBOT_DOMAINS};\n  ssl_certificate /etc/letsencrypt/live/$${FIRST}/fullchain.pem;\n  ssl_certificate_key /etc/letsencrypt/live/$${FIRST}/privkey.pem;\n  location / {\n    proxy_pass http://app:8080;\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n  }\n}\nEOF\n    nginx -s reload || true; \ 
   fi; \ 
 fi; \ 
-while :; do certbot renew --webroot -w /var/www/certbot --deploy-hook "nginx -s reload" --quiet; sleep 12h; done\
+exit 0\
 "
     networks:
       - internal
