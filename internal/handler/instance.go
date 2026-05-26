@@ -9,6 +9,8 @@ import (
 	"jiramo/internal/models"
 	"jiramo/internal/utils"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -66,7 +68,23 @@ func (h *InstanceHandler) ListInstances(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, instances)
+	// sanitize instances before returning (do not expose AGENT_TOKEN)
+	sanitized := make([]models.Instance, 0, len(instances))
+	for _, inst := range instances {
+		if inst.Environment != nil {
+			env := make(map[string]string, len(inst.Environment))
+			for k, v := range inst.Environment {
+				if k == "AGENT_TOKEN" {
+					continue
+				}
+				env[k] = v
+			}
+			inst.Environment = env
+		}
+		sanitized = append(sanitized, inst)
+	}
+
+	utils.WriteJSON(w, http.StatusOK, sanitized)
 }
 
 func (h *InstanceHandler) CreateInstance(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +128,18 @@ func (h *InstanceHandler) CreateInstance(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// do not return AGENT_TOKEN
+	if instance.Environment != nil {
+		env := make(map[string]string, len(instance.Environment))
+		for k, v := range instance.Environment {
+			if k == "AGENT_TOKEN" {
+				continue
+			}
+			env[k] = v
+		}
+		instance.Environment = env
+	}
+
 	utils.WriteJSON(w, http.StatusCreated, instance)
 }
 
@@ -128,6 +158,18 @@ func (h *InstanceHandler) GetInstance(w http.ResponseWriter, r *http.Request) {
 		}
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve instance")
 		return
+	}
+
+	// do not expose AGENT_TOKEN
+	if instance.Environment != nil {
+		env := make(map[string]string, len(instance.Environment))
+		for k, v := range instance.Environment {
+			if k == "AGENT_TOKEN" {
+				continue
+			}
+			env[k] = v
+		}
+		instance.Environment = env
 	}
 
 	utils.WriteJSON(w, http.StatusOK, instance)
@@ -245,11 +287,20 @@ func (h *InstanceHandler) DispatchInstance(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// copy environment but do not send AGENT_TOKEN to the agent
+	envCopy := make(map[string]string, len(instance.Environment))
+	for k, v := range instance.Environment {
+		if k == "AGENT_TOKEN" {
+			continue
+		}
+		envCopy[k] = v
+	}
+
 	payload := map[string]any{
 		"base_repo_url": instance.BaseRepoURL,
 		"base_repo_ref": instance.BaseRepoRef,
 		"compose_path":  instance.ComposePath,
-		"environment":   instance.Environment,
+		"environment":   envCopy,
 	}
 	body, _ := json.Marshal(payload)
 
@@ -311,14 +362,47 @@ func (h *InstanceHandler) ApplyInstance(w http.ResponseWriter, r *http.Request) 
 	instance.LastAppliedAt = &now
 	instance.Status = "ready"
 
+	// prepare environment for response without AGENT_TOKEN
+	envForResponse := make(map[string]string, len(instance.Environment))
+	for k, v := range instance.Environment {
+		if k == "AGENT_TOKEN" {
+			continue
+		}
+		envForResponse[k] = v
+	}
+
+	// render environment file from the sanitized map
+	environmentFile := renderEnvMap(envForResponse)
+
 	utils.WriteJSON(w, http.StatusOK, ApplyInstanceResponse{
 		Command:         "docker compose up --build -d",
-		EnvironmentFile:  instance.RenderEnvironmentFile(),
-		Environment:      instance.Environment,
-		ComposePath:      instance.ComposePath,
-		BaseRepoURL:      instance.BaseRepoURL,
-		BaseRepoRef:      instance.BaseRepoRef,
-		LastAppliedAt:    instance.LastAppliedAt,
-		Status:           instance.Status,
+		EnvironmentFile: environmentFile,
+		Environment:     envForResponse,
+		ComposePath:     instance.ComposePath,
+		BaseRepoURL:     instance.BaseRepoURL,
+		BaseRepoRef:     instance.BaseRepoRef,
+		LastAppliedAt:   instance.LastAppliedAt,
+		Status:          instance.Status,
 	})
+}
+
+func renderEnvMap(env map[string]string) string {
+	if env == nil {
+		return ""
+	}
+
+	keys := make([]string, 0, len(env))
+	for k := range env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var builder strings.Builder
+	for _, key := range keys {
+		builder.WriteString(key)
+		builder.WriteString("=")
+		builder.WriteString(env[key])
+		builder.WriteString("\n")
+	}
+	return builder.String()
 }
