@@ -1,7 +1,14 @@
 package models
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"io"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -50,6 +57,17 @@ func (i *Instance) AfterFind(tx *gorm.DB) (err error) {
 		environment = map[string]string{}
 	}
 
+	// try to decrypt AGENT_TOKEN if encrypted
+	keyB64 := os.Getenv("HQ_SECRET_KEY")
+	if keyB64 != "" {
+		if enc, ok := environment["AGENT_TOKEN"]; ok && strings.HasPrefix(enc, "ENC::") {
+			raw, derr := decryptString(keyB64, strings.TrimPrefix(enc, "ENC::"))
+			if derr == nil {
+				environment["AGENT_TOKEN"] = raw
+			}
+		}
+	}
+
 	i.Environment = environment
 	return nil
 }
@@ -59,6 +77,21 @@ func (i *Instance) syncEnvironmentRaw() error {
 		i.Environment = map[string]string{}
 	}
 
+	// if HQ_SECRET_KEY is set, encrypt AGENT_TOKEN in the environment before marshalling
+	keyB64 := os.Getenv("HQ_SECRET_KEY")
+	if keyB64 != "" {
+		if v, ok := i.Environment["AGENT_TOKEN"]; ok {
+			// if already encrypted, leave as-is
+			if !strings.HasPrefix(v, "ENC::") {
+				enc, err := encryptString(keyB64, v)
+				if err != nil {
+					return err
+				}
+				i.Environment["AGENT_TOKEN"] = "ENC::" + enc
+			}
+		}
+	}
+
 	raw, err := json.Marshal(i.Environment)
 	if err != nil {
 		return err
@@ -66,6 +99,69 @@ func (i *Instance) syncEnvironmentRaw() error {
 
 	i.EnvironmentRaw = string(raw)
 	return nil
+}
+
+func decodeKey(keyB64 string) ([]byte, error) {
+	k, err := base64.StdEncoding.DecodeString(keyB64)
+	if err != nil {
+		return nil, err
+	}
+	if len(k) != 32 {
+		return nil, errors.New("HQ_SECRET_KEY must be base64 of 32 bytes")
+	}
+	return k, nil
+}
+
+func encryptString(keyB64, plaintext string) (string, error) {
+	key, err := decodeKey(keyB64)
+	if err != nil {
+		return "", err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+	ct := gcm.Seal(nil, nonce, []byte(plaintext), nil)
+	out := append(nonce, ct...)
+	return base64.StdEncoding.EncodeToString(out), nil
+}
+
+func decryptString(keyB64, dataB64 string) (string, error) {
+	key, err := decodeKey(keyB64)
+	if err != nil {
+		return "", err
+	}
+	raw, err := base64.StdEncoding.DecodeString(dataB64)
+	if err != nil {
+		return "", err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	ns := gcm.NonceSize()
+	if len(raw) < ns {
+		return "", errors.New("ciphertext too short")
+	}
+	nonce := raw[:ns]
+	ct := raw[ns:]
+	pt, err := gcm.Open(nil, nonce, ct, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(pt), nil
 }
 
 func (i *Instance) RenderEnvironmentFile() string {
