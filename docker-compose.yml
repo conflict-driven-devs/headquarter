@@ -36,6 +36,7 @@ services:
     volumes:
       - ./infra/proxy:/etc/nginx/conf.d
       - ./infra/proxy/certbot-www:/var/www/certbot
+      - ./infra/proxy/letsencrypt:/etc/letsencrypt
     depends_on:
       - app
     networks:
@@ -46,7 +47,7 @@ services:
     restart: "no"
     volumes:
       - ./infra/proxy/letsencrypt:/etc/letsencrypt
-      - ./infra/proxy/letsencrypt-var:/var/lib/letsencrypt
+      - ./infra/proxy/letsencrypt:/var/lib/letsencrypt
       - ./infra/proxy:/etc/nginx/conf.d
       - ./infra/proxy/certbot-www:/var/www/certbot
     environment:
