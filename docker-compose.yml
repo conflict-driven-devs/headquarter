@@ -45,8 +45,8 @@ services:
     image: certbot/certbot:2.6.0
     restart: "no"
     volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
+      - ./infra/letsencrypt:/etc/letsencrypt
+      - ./infra/letsencrypt-var:/var/lib/letsencrypt
       - ./infra/nginx:/etc/nginx/conf.d
       - ./infra/nginx/certbot-www:/var/www/certbot
     environment:
