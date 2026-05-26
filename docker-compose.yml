@@ -1,8 +1,8 @@
 services:
   app:
     build:
-      context: ./apps
-      dockerfile: cmd/jiramo/Dockerfile
+      context: .
+      dockerfile: apps/cmd/jiramo/Dockerfile
     environment:
       - APP_ENV=production
       - DB_HOST=postgres
@@ -31,11 +31,14 @@ services:
   proxy:
     image: nginx:stable-alpine
     restart: unless-stopped
+    env_file:
+      - ./infra/env/${DEPLOY_ENV:-dev}.env
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./infra/proxy:/etc/nginx/conf.d:ro
+      - ./infra/proxy/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./infra/proxy/ssl.conf:/etc/nginx/conf.d/ssl.conf:ro
       - ./infra/proxy/certbot-www:/var/www/certbot:ro
       - ./infra/proxy/letsencrypt:/etc/letsencrypt:ro
     depends_on:
@@ -44,16 +47,18 @@ services:
       - internal
 
   certbot:
-    image: certbot/certbot:2.6.0
+    image: certbot/certbot:latest
     restart: "no"
+    profiles:
+      - certbot
+    env_file:
+      - ./infra/env/${DEPLOY_ENV:-dev}.env
     volumes:
+      - ./infra/proxy/certbot.sh:/usr/local/bin/certbot.sh:ro
       - ./infra/proxy/letsencrypt:/etc/letsencrypt
-      - ./infra/proxy:/etc/nginx/conf.d
+      - ./infra/proxy/ssl.conf:/etc/nginx/conf.d/ssl.conf
       - ./infra/proxy/certbot-www:/var/www/certbot
-    environment:
-      - CERTBOT_DOMAINS=${CERTBOT_DOMAINS}
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
-    command: ["/bin/sh", "/etc/nginx/conf.d/certbot.sh"]
+    command: ["/bin/sh", "/usr/local/bin/certbot.sh"]
     networks:
       - internal
 

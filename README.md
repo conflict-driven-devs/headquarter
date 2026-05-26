@@ -13,7 +13,18 @@ Minimal control plane for provisioning and managing servers.
 docker compose up --build
 ```
 
-Open `http://localhost` or `https://localhost` if certs are configured.
+Open `http://client.localhost`, `http://dashboard.localhost`, or `http://api.localhost`.
+
+Local hosts file entries:
+
+```text
+127.0.0.1 client.localhost
+127.0.0.1 dashboard.localhost
+127.0.0.1 api.localhost
+```
+
+The active proxy settings come from `infra/env/${DEPLOY_ENV:-dev}.env`.
+Use `dev` locally and `prod` for production-like values.
 
 ## Bootstrap a server
 
