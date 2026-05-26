@@ -40,6 +40,7 @@ func main() {
 
 	setupHandler := handler.NewSetupHandler(DB)
 	authHandlers := handler.NewAuthHandler(DB)
+	instanceHandler := handler.NewInstanceHandler(DB)
 	projectHandlers := handler.NewProjectHandler(DB)
 	userHandler := handler.NewUserHandler(DB)
 	webHandler := handler.NewWebHandler()
@@ -48,10 +49,11 @@ func main() {
 	apiKeyHandler := handler.NewAPIKeyHandler(DB)
 
 	setupHandler.SetHandlerRegistry(&handler.HandlerRegistry{
-		Auth:    authHandlers,
-		Project: projectHandlers,
-		User:    userHandler,
-		Profile: profileHandlers,
+		Auth:     authHandlers,
+		Instance: instanceHandler,
+		Project:  projectHandlers,
+		User:     userHandler,
+		Profile:  profileHandlers,
 	})
 
 	router := mux.NewRouter()
@@ -60,7 +62,7 @@ func main() {
 	router.Use(middleware.Logging)
 	router.Use(middleware.AppState)
 
-	routes.SetupRoutes(router, authHandlers, projectHandlers, webHandler, userHandler, setupHandler, profileHandlers, analyticsHandlers, apiKeyHandler, DB)
+	routes.SetupRoutes(router, authHandlers, instanceHandler, projectHandlers, webHandler, userHandler, setupHandler, profileHandlers, analyticsHandlers, apiKeyHandler, DB)
 
 	fmt.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

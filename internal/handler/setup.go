@@ -22,10 +22,11 @@ type SetupHandler struct {
 }
 
 type HandlerRegistry struct {
-	Auth    *AuthHandler
-	Project *ProjectHandler
-	User    *UserHandler
-	Profile *ProfileHandler
+	Auth     *AuthHandler
+	Instance *InstanceHandler
+	Project  *ProjectHandler
+	User     *UserHandler
+	Profile  *ProfileHandler
 }
 
 func NewSetupHandler(db *gorm.DB) *SetupHandler {
@@ -131,6 +132,9 @@ func (h *SetupHandler) DBSetup(w http.ResponseWriter, r *http.Request) {
 
 	if h.HandlerRefs.Auth != nil {
 		h.HandlerRefs.Auth.DB = dbConn
+	}
+	if h.HandlerRefs.Instance != nil {
+		h.HandlerRefs.Instance.DB = dbConn
 	}
 	if h.HandlerRefs.Project != nil {
 		h.HandlerRefs.Project.DB = dbConn

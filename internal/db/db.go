@@ -41,6 +41,7 @@ func Connect(user, host, password, name, port string) (*gorm.DB, error) {
 	log.Println("Running migrations...")
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.Instance{},
 		&models.Project{},
 		&models.Token{},
 		&models.Session{},

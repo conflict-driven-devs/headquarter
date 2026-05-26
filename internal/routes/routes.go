@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, projectHandlers *handler.ProjectHandler, webHandler *handler.WebHandler, userHandlers *handler.UserHandler, setupHandler *handler.SetupHandler, profileHandler *handler.ProfileHandler, analyticsHandler *handler.AnalyticsHandler, apiKeyHandler *handler.APIKeyHandler, db *gorm.DB) {
+func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, instanceHandler *handler.InstanceHandler, projectHandlers *handler.ProjectHandler, webHandler *handler.WebHandler, userHandlers *handler.UserHandler, setupHandler *handler.SetupHandler, profileHandler *handler.ProfileHandler, analyticsHandler *handler.AnalyticsHandler, apiKeyHandler *handler.APIKeyHandler, db *gorm.DB) {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusOK, "Hello from jiramo API")
 	})
@@ -69,6 +69,16 @@ func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, projectH
 	statusRouter.HandleFunc("/status", projectHandlers.GetProjectStatus).Methods("GET")
 	statusRouter.HandleFunc("/status/set", projectHandlers.SetProjectStatus).Methods("POST")
 	statusRouter.HandleFunc("/status/toggle", projectHandlers.ToggleProjectStatus).Methods("PATCH")
+
+	// /api/instances - auth protected, admin only
+	instanceRouter := apiRouter.PathPrefix("/instances").Subrouter()
+	instanceRouter.Use(middleware.Auth)
+	instanceRouter.Use(middleware.RequireRole(models.RoleAdmin))
+	instanceRouter.HandleFunc("", instanceHandler.ListInstances).Methods("GET")
+	instanceRouter.HandleFunc("", instanceHandler.CreateInstance).Methods("POST")
+	instanceRouter.HandleFunc("/{id}", instanceHandler.GetInstance).Methods("GET")
+	instanceRouter.HandleFunc("/{id}", instanceHandler.UpdateInstance).Methods("PUT", "PATCH")
+	instanceRouter.HandleFunc("/{id}", instanceHandler.DeleteInstance).Methods("DELETE")
 
 	// api keys - private
 	apiKeyRouter := apiRouter.PathPrefix("/projects/{id}/apikeys").Subrouter()
