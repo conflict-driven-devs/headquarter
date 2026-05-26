@@ -5,6 +5,7 @@ import (
 	"jiramo/internal/models"
 	"jiramo/internal/utils"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -41,6 +42,17 @@ type UpdateInstanceInput struct {
 	ComposePath *string           `json:"compose_path" validate:"omitempty,min=1,max=255"`
 	Environment map[string]string `json:"environment"`
 	Status      *string           `json:"status" validate:"omitempty,oneof=draft ready paused error"`
+}
+
+type ApplyInstanceResponse struct {
+	Command           string            `json:"command"`
+	EnvironmentFile   string            `json:"environment_file"`
+	Environment       map[string]string `json:"environment"`
+	ComposePath       string            `json:"compose_path"`
+	BaseRepoURL       string            `json:"base_repo_url"`
+	BaseRepoRef       string            `json:"base_repo_ref"`
+	LastAppliedAt     *time.Time        `json:"last_applied_at"`
+	Status            string            `json:"status"`
 }
 
 func (h *InstanceHandler) ListInstances(w http.ResponseWriter, r *http.Request) {
@@ -198,4 +210,47 @@ func (h *InstanceHandler) DeleteInstance(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Deleted"})
+}
+
+func (h *InstanceHandler) ApplyInstance(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(mux.Vars(r)["id"])
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid id")
+		return
+	}
+
+	var instance models.Instance
+	if err := h.DB.First(&instance, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.WriteError(w, http.StatusNotFound, "Instance not found")
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve instance")
+		return
+	}
+
+	now := time.Now().UTC()
+	updates := map[string]any{
+		"last_applied_at": now,
+		"status":          "ready",
+	}
+
+	if err := h.DB.Model(&models.Instance{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to apply instance configuration")
+		return
+	}
+
+	instance.LastAppliedAt = &now
+	instance.Status = "ready"
+
+	utils.WriteJSON(w, http.StatusOK, ApplyInstanceResponse{
+		Command:         "docker compose up --build -d",
+		EnvironmentFile:  instance.RenderEnvironmentFile(),
+		Environment:      instance.Environment,
+		ComposePath:      instance.ComposePath,
+		BaseRepoURL:      instance.BaseRepoURL,
+		BaseRepoRef:      instance.BaseRepoRef,
+		LastAppliedAt:    instance.LastAppliedAt,
+		Status:           instance.Status,
+	})
 }

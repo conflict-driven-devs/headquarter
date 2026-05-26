@@ -2,6 +2,8 @@ package models
 
 import (
 	"encoding/json"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,4 +66,26 @@ func (i *Instance) syncEnvironmentRaw() error {
 
 	i.EnvironmentRaw = string(raw)
 	return nil
+}
+
+func (i *Instance) RenderEnvironmentFile() string {
+	if i.Environment == nil {
+		return ""
+	}
+
+	keys := make([]string, 0, len(i.Environment))
+	for key := range i.Environment {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	var builder strings.Builder
+	for _, key := range keys {
+		builder.WriteString(key)
+		builder.WriteString("=")
+		builder.WriteString(i.Environment[key])
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
 }
