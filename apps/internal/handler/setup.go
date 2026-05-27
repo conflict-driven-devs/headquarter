@@ -2,12 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+
 	"github.com/conflict-driven-devs/headquarter/internal/config"
 	"github.com/conflict-driven-devs/headquarter/internal/db"
 	"github.com/conflict-driven-devs/headquarter/internal/models"
 	"github.com/conflict-driven-devs/headquarter/internal/utils"
-	"log"
-	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"

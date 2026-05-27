@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/conflict-driven-devs/headquarter/internal/config"
 	"github.com/conflict-driven-devs/headquarter/internal/db"
 	"github.com/conflict-driven-devs/headquarter/internal/handler"
 	"github.com/conflict-driven-devs/headquarter/internal/middleware"
 	"github.com/conflict-driven-devs/headquarter/internal/models"
 	"github.com/conflict-driven-devs/headquarter/internal/routes"
-	"log"
-	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"

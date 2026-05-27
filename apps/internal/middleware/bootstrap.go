@@ -1,9 +1,10 @@
 package middleware
 
 import (
+	"net/http"
+
 	"github.com/conflict-driven-devs/headquarter/internal/models"
 	"github.com/conflict-driven-devs/headquarter/internal/utils"
-	"net/http"
 )
 
 func AppState(next http.Handler) http.Handler {
