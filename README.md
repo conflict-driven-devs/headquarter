@@ -15,6 +15,12 @@ docker compose up --build
 
 Open `http://client.localhost`, `http://dashboard.localhost`, or `http://api.localhost`.
 
+Routing locali:
+
+- `client.localhost` -> `dashboard`
+- `dashboard.localhost` -> `dashboard`
+- `api.localhost` -> `backend`
+
 Local hosts file entries:
 
 ```text

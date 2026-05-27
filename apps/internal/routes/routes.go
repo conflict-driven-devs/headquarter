@@ -1,12 +1,13 @@
 package routes
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/conflict-driven-devs/headquarter/internal/handler"
 	"github.com/conflict-driven-devs/headquarter/internal/middleware"
 	"github.com/conflict-driven-devs/headquarter/internal/models"
 	"github.com/conflict-driven-devs/headquarter/internal/utils"
-	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -26,7 +27,9 @@ func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, instance
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(content)
 	}).Methods("GET")
-	router.Handle("/", webHandler.UIHandler())
+	if webHandler != nil {
+		router.Handle("/", webHandler.UIHandler())
+	}
 
 	// /api subrouter
 	apiRouter := router.PathPrefix("/api").Subrouter()
@@ -34,7 +37,6 @@ func SetupRoutes(router *mux.Router, authHandlers *handler.AuthHandler, instance
 	// /api/setup
 	setupRouter := apiRouter.PathPrefix("/setup").Subrouter()
 	setupRouter.HandleFunc("/status", setupHandler.Status).Methods("GET")
-	setupRouter.HandleFunc("/db", setupHandler.DBSetup).Methods("POST")
 	setupRouter.HandleFunc("/admin", setupHandler.AdminSetup).Methods("POST")
 
 	// /api/auth

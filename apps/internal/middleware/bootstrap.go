@@ -18,7 +18,7 @@ func AppState(next http.Handler) http.Handler {
 		switch models.AppState {
 
 		case models.NoDB:
-			if path != "/api/setup/db" {
+			if path != "/api/setup/admin" {
 				utils.WriteError(w, http.StatusForbidden, "database not configured")
 				return
 			}
@@ -30,7 +30,7 @@ func AppState(next http.Handler) http.Handler {
 			}
 
 		case models.Ready:
-			if path == "/api/setup/db" || path == "/api/setup/admin" {
+			if path == "/api/setup/admin" {
 				utils.WriteError(w, http.StatusForbidden, "setup already completed")
 				return
 			}

@@ -1,6 +1,6 @@
 Nginx + Certbot consolidated configuration for Headquarter reverse proxy.
 
-- `default.conf.template`: HTTP config template driven by `CLIENT_HOSTNAME`, `DASHBOARD_HOSTNAME`, and `API_HOSTNAME`.
+- `default.conf.template`: HTTP config template that routes `CLIENT_HOSTNAME` and `DASHBOARD_HOSTNAME` to `dashboard`, while forwarding `/api` to `backend`; `API_HOSTNAME` goes to `backend`.
 - `ssl.conf`: TLS config written by Certbot when certificates are obtained.
 - `certbot-www/`: webroot used by Certbot to respond to ACME challenges.
 - `letsencrypt/`: persisted certs and certbot state (single folder).

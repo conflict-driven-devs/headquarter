@@ -41,11 +41,40 @@ func (h *SetupHandler) SetHandlerRegistry(registry *HandlerRegistry) {
 	h.HandlerRefs = registry
 }
 
+func (h *SetupHandler) ensureDB() (*gorm.DB, error) {
+	if h.DB != nil {
+		return h.DB, nil
+	}
+
+	dbConn, err := db.ConnectFromEnv()
+	if err != nil || dbConn == nil {
+		return nil, err
+	}
+
+	h.DB = dbConn
+	if h.HandlerRefs.Auth != nil {
+		h.HandlerRefs.Auth.DB = dbConn
+	}
+	if h.HandlerRefs.Instance != nil {
+		h.HandlerRefs.Instance.DB = dbConn
+	}
+	if h.HandlerRefs.Project != nil {
+		h.HandlerRefs.Project.DB = dbConn
+	}
+	if h.HandlerRefs.User != nil {
+		h.HandlerRefs.User.DB = dbConn
+	}
+	if h.HandlerRefs.Profile != nil {
+		h.HandlerRefs.Profile.DB = dbConn
+	}
+
+	return dbConn, nil
+}
+
 func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 	var state string
 
-	// If DB is not initialized, we're in no_db state
-	if h.DB == nil {
+	if _, err := h.ensureDB(); err != nil {
 		state = "no_db"
 	} else {
 		// DB exists, check if admin exists
@@ -165,11 +194,10 @@ func (h *SetupHandler) AdminSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.DB == nil {
-		utils.WriteError(w, http.StatusServiceUnavailable, "database not initialized")
+	if _, err := h.ensureDB(); err != nil {
+		utils.WriteError(w, http.StatusServiceUnavailable, "database unavailable")
 		return
 	}
-
 	exists, err := db.AdminExists(h.DB)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "database error")

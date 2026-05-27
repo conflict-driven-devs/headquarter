@@ -33,7 +33,7 @@ func LoadDBConfig() (*DBConfig, error) {
 	data, err := os.ReadFile(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return DefaultDBConfig(), nil
 		}
 		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
@@ -41,6 +41,23 @@ func LoadDBConfig() (*DBConfig, error) {
 	var cfg DBConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
+	}
+
+	defaults := DefaultDBConfig()
+	if cfg.Host == "" {
+		cfg.Host = defaults.Host
+	}
+	if cfg.User == "" {
+		cfg.User = defaults.User
+	}
+	if cfg.Password == "" {
+		cfg.Password = defaults.Password
+	}
+	if cfg.Name == "" {
+		cfg.Name = defaults.Name
+	}
+	if cfg.Port == "" {
+		cfg.Port = defaults.Port
 	}
 
 	return &cfg, nil

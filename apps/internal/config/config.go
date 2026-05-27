@@ -18,11 +18,11 @@ var Global *Config
 
 func init() {
 	Global = &Config{
-		DB_HOST:      getEnv("DB_HOST", ""),
-		DB_USER:      getEnv("DB_USER", ""),
+		DB_HOST:      getEnv("DB_HOST", "postgres"),
+		DB_USER:      getEnv("DB_USER", "postgres"),
 		DB_PASSWORD:  getEnv("DB_PASSWORD", ""),
-		DB_NAME:      getEnv("DB_NAME", ""),
-		DB_PORT:      getEnv("DB_PORT", "3306"),
+		DB_NAME:      getEnv("DB_NAME", "postgres"),
+		DB_PORT:      getEnv("DB_PORT", "5432"),
 		JWT_SECRET:   getEnv("JWT_SECRET", ""),
 		FRONTEND_URL: getEnv("FRONTEND_URL", "http://localhost:5173"),
 	}

@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/conflict-driven-devs/headquarter/internal/config"
 	"github.com/conflict-driven-devs/headquarter/internal/db"
 	"github.com/conflict-driven-devs/headquarter/internal/handler"
 	"github.com/conflict-driven-devs/headquarter/internal/middleware"
 	"github.com/conflict-driven-devs/headquarter/internal/models"
 	"github.com/conflict-driven-devs/headquarter/internal/routes"
-	"log"
-	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -51,7 +52,6 @@ func main() {
 	instanceHandler := handler.NewInstanceHandler(DB)
 	projectHandlers := handler.NewProjectHandler(DB)
 	userHandler := handler.NewUserHandler(DB)
-	webHandler := handler.NewWebHandler()
 	profileHandlers := handler.NewProfileHandler(DB)
 	analyticsHandlers := handler.NewAnalyticsHandler(DB)
 	apiKeyHandler := handler.NewAPIKeyHandler(DB)
@@ -70,8 +70,8 @@ func main() {
 	router.Use(middleware.Logging)
 	router.Use(middleware.AppState)
 
-	routes.SetupRoutes(router, authHandlers, instanceHandler, projectHandlers, webHandler, userHandler, setupHandler, profileHandlers, analyticsHandlers, apiKeyHandler, DB)
+	routes.SetupRoutes(router, authHandlers, instanceHandler, projectHandlers, nil, userHandler, setupHandler, profileHandlers, analyticsHandlers, apiKeyHandler, DB)
 
-	fmt.Println("Server started on :8080")
+	fmt.Println("Backend started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

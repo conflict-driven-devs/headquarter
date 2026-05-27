@@ -17,9 +17,13 @@ export default function SetupGuard({ children }: SetupGuardProps) {
   const [checking, setChecking] = useState(true);
   const [setupState, setSetupState] = useState<SetupStatusResponse['state'] | null>(null);
   const location = useLocation();
+  const [checkedPath, setCheckedPath] = useState('');
   const { status: authStatus } = useAuth();
 
   useEffect(() => {
+    setChecking(true);
+    setCheckedPath(location.pathname);
+
     let active = true;
     api.get<SetupStatusResponse>('/api/setup/status')
       .then((data) => {
@@ -35,9 +39,9 @@ export default function SetupGuard({ children }: SetupGuardProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [location.pathname]);
 
-  if (checking) return <LoadingScreen />;
+  if (checking || checkedPath !== location.pathname) return <LoadingScreen />;
   if (setupState && setupState !== 'ready' && location.pathname !== '/setup') {
     return <Navigate to="/setup" replace />;
   }

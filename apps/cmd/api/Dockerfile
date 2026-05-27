@@ -14,11 +14,11 @@ COPY apps/internal ./internal
 COPY apps/web ./web
 COPY infra/scripts ./infra/scripts
 COPY --from=frontend-builder /src/web/dist ./web/dist
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/jiramo ./cmd/jiramo
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/backend ./cmd/api
 
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=backend-builder /out/jiramo ./jiramo
+COPY --from=backend-builder /out/backend ./backend
 COPY --from=backend-builder /src/apps/infra/scripts ./infra/scripts
 EXPOSE 8080
-CMD ["./jiramo"]
+CMD ["./backend"]

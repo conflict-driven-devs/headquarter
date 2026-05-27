@@ -1,8 +1,8 @@
 services:
-  app:
+  backend:
     build:
       context: .
-      dockerfile: apps/cmd/jiramo/Dockerfile
+      dockerfile: apps/cmd/api/Dockerfile
     environment:
       - APP_ENV=production
       - DB_HOST=postgres
@@ -12,6 +12,14 @@ services:
       - JWT_SECRET=dev_secret_key
     depends_on:
       - postgres
+    networks:
+      - internal
+
+  dashboard:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
     networks:
       - internal
 
@@ -42,7 +50,8 @@ services:
       - ./infra/proxy/certbot-www:/var/www/certbot:ro
       - ./infra/proxy/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      - app
+      - backend
+      - dashboard
     networks:
       - internal
 
